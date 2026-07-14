@@ -10,6 +10,12 @@ export default defineConfig({
     permissions: ['storage'],
     action: {
       default_title: 'Vim for Reddit',
+      default_icon: {
+        16: 'icons/16.png',
+        32: 'icons/32.png',
+        48: 'icons/48.png',
+        128: 'icons/128.png',
+      },
     },
     browser_specific_settings:
       browser === 'firefox'

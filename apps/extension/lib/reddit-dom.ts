@@ -5,6 +5,8 @@ export type RedditAction = 'upvote' | 'downvote' | 'collapse' | 'reply';
 
 const ACTION_SELECTORS: Record<RedditAction, string[]> = {
   upvote: [
+    'button[upvote]',
+    'button[data-action-bar-action="upvote"]',
     'button[aria-label="upvote" i]',
     'button[aria-label^="upvote" i]',
     'button[data-testid="upvote-button"]',
@@ -13,6 +15,8 @@ const ACTION_SELECTORS: Record<RedditAction, string[]> = {
     'button[name="upvote"]',
   ],
   downvote: [
+    'button[downvote]',
+    'button[data-action-bar-action="downvote"]',
     'button[aria-label="downvote" i]',
     'button[aria-label^="downvote" i]',
     'button[data-testid="downvote-button"]',
@@ -21,12 +25,14 @@ const ACTION_SELECTORS: Record<RedditAction, string[]> = {
     'button[name="downvote"]',
   ],
   collapse: [
+    ':scope > details > summary',
     'button[aria-label*="collapse comment" i]',
     'button[data-testid="comment-collapse"]',
     '[data-click-id="collapse"]',
     'faceplate-tracker[noun="collapse"] button',
   ],
   reply: [
+    '[slot="comment-reply"]',
     'button[aria-label="reply" i]',
     'button[aria-label*="reply to" i]',
     'button[data-testid="comment-reply-button"]',
@@ -72,9 +78,11 @@ function isHiddenByAttributes(element: HTMLElement): boolean {
 
 function isCollapsed(comment: HTMLElement): boolean {
   const collapsed = comment.getAttribute('collapsed');
+  const details = comment.querySelector<HTMLDetailsElement>(':scope > details');
   return (
     (collapsed !== null && collapsed !== 'false') ||
-    comment.getAttribute('data-collapsed') === 'true'
+    comment.getAttribute('data-collapsed') === 'true' ||
+    (details !== null && !details.open)
   );
 }
 
@@ -126,19 +134,45 @@ function collectOpenShadowRoots(root: ParentNode): ShadowRoot[] {
   return roots;
 }
 
-function queryFirstDeep(root: ParentNode, selectors: string[]): HTMLElement | null {
+function getClosestAcrossShadowRoots(element: HTMLElement, selector: string): HTMLElement | null {
+  let current: Element | null = element;
+  while (current) {
+    const closest = current.closest<HTMLElement>(selector);
+    if (closest) return closest;
+    const root = current.getRootNode();
+    current = root instanceof ShadowRoot ? root.host : null;
+  }
+  return null;
+}
+
+function queryFirstDeep(
+  root: ParentNode,
+  selectors: string[],
+  accepts: (candidate: HTMLElement) => boolean = () => true,
+): HTMLElement | null {
   const roots: ParentNode[] = [root, ...collectOpenShadowRoots(root)];
   for (const selector of selectors) {
     for (const candidateRoot of roots) {
-      const candidate = candidateRoot.querySelector<HTMLElement>(selector);
-      if (candidate) return candidate;
+      for (const candidate of candidateRoot.querySelectorAll<HTMLElement>(selector)) {
+        if (accepts(candidate)) return candidate;
+      }
     }
   }
   return null;
 }
 
 export function findActionControl(scope: HTMLElement, action: RedditAction): HTMLElement | null {
-  return queryFirstDeep(scope, ACTION_SELECTORS[action]);
+  const boundarySelector = scope.matches(COMMENT_SELECTOR)
+    ? COMMENT_SELECTOR
+    : scope.matches(POST_SELECTOR)
+      ? POST_SELECTOR
+      : null;
+  return queryFirstDeep(
+    scope,
+    ACTION_SELECTORS[action],
+    (candidate) =>
+      boundarySelector === null || getClosestAcrossShadowRoots(candidate, boundarySelector) === scope,
+  );
 }
 
 export function findPostReplyControl(document: Document): HTMLElement | null {

@@ -61,6 +61,22 @@ describe('new Reddit DOM discovery', () => {
     expect(isVisibleComment(element('#collapsed'))).toBe(true);
   });
 
+  it('treats descendants of a closed Reddit details thread as collapsed', () => {
+    setDocument(`
+      <shreddit-comment id="parent">
+        <details>
+          <summary>Parent</summary>
+          <shreddit-comment id="child"></shreddit-comment>
+        </details>
+      </shreddit-comment>
+    `);
+
+    expect(isVisibleComment(element('#parent'))).toBe(true);
+    expect(isVisibleComment(element('#child'))).toBe(false);
+    element<HTMLDetailsElement>('#parent > details').open = true;
+    expect(isVisibleComment(element('#child'))).toBe(true);
+  });
+
   it('finds only the first direct visible reply, not a deeper descendant or sibling', () => {
     setDocument(`
       <shreddit-comment id="parent">
@@ -114,6 +130,54 @@ describe('native Reddit controls', () => {
     expect(findActionControl(element('#comment'), 'upvote')).toBe(button);
   });
 
+  it('supports the current Shreddit post and comment action contracts', () => {
+    setDocument(`
+      <shreddit-post id="post"></shreddit-post>
+      <shreddit-comment id="comment">
+        <details open>
+          <summary id="collapse">Comment</summary>
+          <shreddit-comment-action-row id="actions">
+            <button slot="comment-reply" id="reply">Reply</button>
+          </shreddit-comment-action-row>
+        </details>
+      </shreddit-comment>
+    `);
+    const postShadow = element('#post').attachShadow({ mode: 'open' });
+    postShadow.innerHTML = `
+      <button upvote data-action-bar-action="upvote" id="post-up">Upvote</button>
+      <button downvote data-action-bar-action="downvote" id="post-down">Downvote</button>
+    `;
+    const actionShadow = element('#actions').attachShadow({ mode: 'open' });
+    actionShadow.innerHTML = `
+      <button upvote id="comment-up">Upvote</button>
+      <button downvote id="comment-down">Downvote</button>
+      <slot name="comment-reply"></slot>
+    `;
+
+    expect(findActionControl(element('#post'), 'upvote')?.id).toBe('post-up');
+    expect(findActionControl(element('#post'), 'downvote')?.id).toBe('post-down');
+    expect(findActionControl(element('#comment'), 'upvote')?.id).toBe('comment-up');
+    expect(findActionControl(element('#comment'), 'downvote')?.id).toBe('comment-down');
+    expect(findActionControl(element('#comment'), 'collapse')?.id).toBe('collapse');
+    expect(findActionControl(element('#comment'), 'reply')?.id).toBe('reply');
+    expect(element<HTMLDetailsElement>('#comment > details').open).toBe(true);
+    expect(clickNativeControl(findActionControl(element('#comment'), 'collapse'))).toBe(true);
+    expect(element<HTMLDetailsElement>('#comment > details').open).toBe(false);
+  });
+
+  it('does not borrow an action control from a nested reply', () => {
+    setDocument(`
+      <shreddit-comment id="parent">
+        <shreddit-comment id="child">
+          <button slot="comment-reply" id="child-reply">Reply</button>
+        </shreddit-comment>
+      </shreddit-comment>
+    `);
+
+    expect(findActionControl(element('#parent'), 'reply')).toBeNull();
+    expect(findActionControl(element('#child'), 'reply')?.id).toBe('child-reply');
+  });
+
   it('finds the post reply composer and canonical comment permalink', () => {
     setDocument(`
       <main>
@@ -151,4 +215,3 @@ describe('native Reddit controls', () => {
     expect(getStableElementKey(document.querySelectorAll<HTMLElement>('shreddit-post')[2])).toBeNull();
   });
 });
-
