@@ -1,0 +1,12 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+.vim-for-reddit-selected {
+  @apply scroll-m-20 outline-3 outline-offset-3 outline-orange-500 ring-1 ring-orange-500/30 transition-[outline-color,box-shadow] duration-150;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vim-for-reddit-selected {
+    @apply transition-none;
+  }
+}

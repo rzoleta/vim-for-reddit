@@ -81,7 +81,7 @@
   <header class="border-b border-stone-200 bg-white px-4 py-3.5">
     <div class="flex items-center gap-3">
       <img
-        src="/icon/128.png"
+        src="/icons/128.png"
         alt=""
         class="size-10 rounded-xl shadow-sm ring-1 ring-black/5"
       />
