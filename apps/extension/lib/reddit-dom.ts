@@ -115,6 +115,9 @@ export function getFirstDirectReply(comment: HTMLElement): HTMLElement | null {
 
 function collectOpenShadowRoots(root: ParentNode): ShadowRoot[] {
   const roots: ShadowRoot[] = [];
+  if (root instanceof Element && root.shadowRoot) {
+    roots.push(root.shadowRoot, ...collectOpenShadowRoots(root.shadowRoot));
+  }
   for (const element of root.querySelectorAll<HTMLElement>('*')) {
     if (element.shadowRoot) {
       roots.push(element.shadowRoot, ...collectOpenShadowRoots(element.shadowRoot));
