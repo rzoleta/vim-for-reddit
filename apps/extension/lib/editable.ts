@@ -19,6 +19,16 @@ export function isEditableElement(value: EventTarget | Element | null): boolean 
   return root instanceof ShadowRoot ? isEditableElement(root.host) : false;
 }
 
+function getDeepActiveElement(document: Document): Element | null {
+  let activeElement = document.activeElement;
+
+  while (activeElement?.shadowRoot?.activeElement) {
+    activeElement = activeElement.shadowRoot.activeElement;
+  }
+
+  return activeElement;
+}
+
 type KeyboardEventIgnoreOptions = {
   respectDefaultPrevented?: boolean;
   allowShift?: boolean;
@@ -36,6 +46,7 @@ export function shouldIgnoreKeyboardEvent(
     event.altKey ||
     (event.shiftKey && !allowShift) ||
     isEditableElement(event.target) ||
-    isEditableElement(document.activeElement)
+    event.composedPath().some(isEditableElement) ||
+    isEditableElement(getDeepActiveElement(document))
   );
 }

@@ -36,6 +36,40 @@ describe('editable target detection', () => {
     expect(isEditableElement(child)).toBe(true);
   });
 
+  it('recognizes an input inside a shadow root from the event composed path', () => {
+    setDocument('<search-box id="host"></search-box>');
+    const shadow = element('#host').attachShadow({ mode: 'open' });
+    const input = document.createElement('input');
+    shadow.append(input);
+
+    const event = new KeyboardEvent('keydown', { key: 'j', bubbles: true, composed: true });
+    let shouldIgnore = false;
+    document.addEventListener(
+      'keydown',
+      (dispatchedEvent) => {
+        shouldIgnore = shouldIgnoreKeyboardEvent(dispatchedEvent, document);
+      },
+      { once: true },
+    );
+    input.dispatchEvent(event);
+
+    expect(event.target).toBe(element('#host'));
+    expect(shouldIgnore).toBe(true);
+  });
+
+  it('recognizes the deeply focused input when the event target is elsewhere', () => {
+    setDocument('<search-box id="host"></search-box>');
+    const shadow = element('#host').attachShadow({ mode: 'open' });
+    const input = document.createElement('input');
+    shadow.append(input);
+    input.focus();
+
+    expect(document.activeElement).toBe(element('#host'));
+    expect(
+      shouldIgnoreKeyboardEvent(new KeyboardEvent('keydown', { key: 'j' }), document),
+    ).toBe(true);
+  });
+
   it('suppresses modified, prevented, directly editable, and active-editable key events', () => {
     setDocument('<input id="input"><button id="button">vote</button>');
     const input = element<HTMLInputElement>('#input');
