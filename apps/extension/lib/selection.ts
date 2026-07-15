@@ -48,7 +48,7 @@ export class SelectionManager {
     if (options.scroll !== false && typeof element.scrollIntoView === 'function') {
       element.scrollIntoView({
         behavior: options.smooth === false ? 'auto' : 'smooth',
-        block: 'center',
+        block: element.matches(COMMENT_SELECTOR) ? 'start' : 'center',
         inline: 'nearest',
       });
     }

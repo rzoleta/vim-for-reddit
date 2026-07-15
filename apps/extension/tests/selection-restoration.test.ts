@@ -38,7 +38,7 @@ describe('SelectionManager', () => {
     expect(selected).toHaveBeenCalledTimes(6);
   });
 
-  it('moves the highlight, scrolls to center, and clears all selection state', () => {
+  it('moves the highlight, centers posts, and clears all selection state', () => {
     setDocument('<shreddit-post id="one"></shreddit-post><shreddit-post id="two"></shreddit-post>');
     const one = element('#one');
     const two = element('#two');
@@ -69,6 +69,25 @@ describe('SelectionManager', () => {
     expect(manager.current).toBeNull();
     expect(manager.currentKey).toBeNull();
     expect(two.classList.contains(SELECTED_CLASS)).toBe(false);
+  });
+
+  it('scrolls comments to the top so expanded replies do not affect their position', () => {
+    setDocument(`
+      <shreddit-comment id="comment">
+        <shreddit-comment id="expanded-reply"></shreddit-comment>
+      </shreddit-comment>
+    `);
+    const comment = element('#comment');
+    comment.scrollIntoView = vi.fn();
+    const manager = new SelectionManager(() => [comment]);
+
+    manager.select(comment);
+
+    expect(comment.scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+      inline: 'nearest',
+    });
   });
 
   it('reconciles a rerendered element using its stable key without scrolling', () => {
