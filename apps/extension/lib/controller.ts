@@ -1,5 +1,9 @@
 import { shouldIgnoreKeyboardEvent } from './editable';
-import { commandForKey, isAllowedRepeat, type KeyboardCommand } from './keyboard';
+import {
+  isAllowedRepeat,
+  KeyboardShortcutMatcher,
+  type KeyboardCommand,
+} from './keyboard';
 import {
   activatePostReplyControl,
   clickNativeControl,
@@ -9,6 +13,7 @@ import {
   getPostPagePost,
   getVisibleComments,
   navigateGallery,
+  COMMENT_SELECTOR,
   POST_SELECTOR,
   setCommentExpanded,
 } from './reddit-dom';
@@ -25,6 +30,7 @@ export class RedditController {
   #pageKind: RedditPageKind;
   #observer: MutationObserver | null = null;
   #refreshScheduled = false;
+  readonly #keyboard = new KeyboardShortcutMatcher();
   readonly #restoration: FeedRestorationStore;
 
   constructor(
@@ -68,6 +74,7 @@ export class RedditController {
     this.window.removeEventListener('pageshow', this.#onLocationChange);
     this.#observer?.disconnect();
     this.#observer = null;
+    this.#keyboard.reset();
     this.feedSelection.clear();
     this.commentSelection.clear();
   }
@@ -75,6 +82,7 @@ export class RedditController {
   setEnabled(enabled: boolean): void {
     this.#enabled = enabled;
     if (!enabled) {
+      this.#keyboard.reset();
       this.feedSelection.clear();
       this.commentSelection.clear();
       return;
@@ -97,6 +105,11 @@ export class RedditController {
   }
 
   #executeFeedCommand(command: KeyboardCommand): boolean {
+    if (command === 'first' || command === 'last') {
+      const posts = getFeedPosts(this.document);
+      const post = command === 'first' ? posts[0] : posts.at(-1);
+      return post ? Boolean(this.feedSelection.select(post)) : false;
+    }
     if (command === 'next') return Boolean(this.feedSelection.move(1));
     if (command === 'previous') return Boolean(this.feedSelection.move(-1));
 
@@ -120,6 +133,17 @@ export class RedditController {
   }
 
   #executePostCommand(command: KeyboardCommand): boolean {
+    if (command === 'first') {
+      const post = getPostPagePost(this.document);
+      return post ? Boolean(this.commentSelection.select(post)) : false;
+    }
+    if (command === 'last') {
+      const lastTopLevelComment = getVisibleComments(this.document)
+        .filter((comment) => !comment.parentElement?.closest(COMMENT_SELECTOR))
+        .at(-1);
+      const target = lastTopLevelComment ?? getPostPagePost(this.document);
+      return target ? Boolean(this.commentSelection.select(target)) : false;
+    }
     if (command === 'next') return Boolean(this.commentSelection.move(1));
     if (command === 'previous') return Boolean(this.commentSelection.move(-1));
     if (command === 'deselect') {
@@ -186,18 +210,27 @@ export class RedditController {
   readonly #onKeydown = (event: KeyboardEvent): void => {
     if (
       !this.#enabled ||
-      shouldIgnoreKeyboardEvent(event, this.document, { respectDefaultPrevented: false })
+      shouldIgnoreKeyboardEvent(event, this.document, {
+        respectDefaultPrevented: false,
+        allowShift: event.key === 'G',
+      })
     ) {
+      this.#keyboard.reset();
       return;
     }
 
     this.#syncPage();
-    const command = commandForKey(event.key, this.#pageKind);
-    if (!command || (event.repeat && !isAllowedRepeat(command))) return;
-
-    if (this.execute(command)) {
+    const match = this.#keyboard.match(event.key, this.#pageKind, { repeat: event.repeat });
+    if (match.type === 'pending') {
       event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (match.type === 'none' || (event.repeat && !isAllowedRepeat(match.command))) return;
+
+    if (this.execute(match.command)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
     }
   };
 

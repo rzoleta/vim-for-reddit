@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { commandForKey, isAllowedRepeat } from '../lib/keyboard';
-import { getRedditPageKind, normalizeFeedUrl } from '../lib/route';
+import {
+  isAllowedRepeat,
+  KeyboardShortcutMatcher,
+  type KeyboardCommand,
+} from '../lib/keyboard';
+import { getRedditPageKind, normalizeFeedUrl, type RedditPageKind } from '../lib/route';
 
 describe('Reddit route classification', () => {
   it.each([
@@ -31,39 +35,94 @@ describe('Reddit route classification', () => {
 });
 
 describe('keyboard command mapping', () => {
+  function expectCommand(
+    matcher: KeyboardShortcutMatcher,
+    key: string,
+    pageKind: RedditPageKind,
+    command: KeyboardCommand,
+  ): void {
+    expect(matcher.match(key, pageKind)).toEqual({ type: 'command', command });
+  }
+
   it('maps every feed shortcut and no post-only shortcuts', () => {
-    expect(commandForKey('j', 'feed')).toBe('next');
-    expect(commandForKey('k', 'feed')).toBe('previous');
-    expect(commandForKey('u', 'feed')).toBe('upvote');
-    expect(commandForKey('d', 'feed')).toBe('downvote');
-    expect(commandForKey('Enter', 'feed')).toBe('open');
-    expect(commandForKey('h', 'feed')).toBe('previous-image');
-    expect(commandForKey('l', 'feed')).toBe('next-image');
-    expect(commandForKey('c', 'feed')).toBeNull();
+    const matcher = new KeyboardShortcutMatcher();
+    expectCommand(matcher, 'j', 'feed', 'next');
+    expectCommand(matcher, 'k', 'feed', 'previous');
+    expectCommand(matcher, 'u', 'feed', 'upvote');
+    expectCommand(matcher, 'd', 'feed', 'downvote');
+    expectCommand(matcher, 'Enter', 'feed', 'open');
+    expectCommand(matcher, 'h', 'feed', 'previous-image');
+    expectCommand(matcher, 'l', 'feed', 'next-image');
+    expectCommand(matcher, 'G', 'feed', 'last');
+    expect(matcher.match('c', 'feed')).toEqual({ type: 'none' });
   });
 
   it('maps every post shortcut and no feed-only open shortcut', () => {
-    expect(commandForKey('j', 'post')).toBe('next');
-    expect(commandForKey('k', 'post')).toBe('previous');
-    expect(commandForKey('h', 'post')).toBe('previous-image');
-    expect(commandForKey('l', 'post')).toBe('next-image');
-    expect(commandForKey('u', 'post')).toBe('upvote');
-    expect(commandForKey('d', 'post')).toBe('downvote');
-    expect(commandForKey('c', 'post')).toBe('reply');
-    expect(commandForKey('Escape', 'post')).toBe('deselect');
-    expect(commandForKey('Enter', 'post')).toBeNull();
+    const matcher = new KeyboardShortcutMatcher();
+    expectCommand(matcher, 'j', 'post', 'next');
+    expectCommand(matcher, 'k', 'post', 'previous');
+    expectCommand(matcher, 'h', 'post', 'previous-image');
+    expectCommand(matcher, 'l', 'post', 'next-image');
+    expectCommand(matcher, 'u', 'post', 'upvote');
+    expectCommand(matcher, 'd', 'post', 'downvote');
+    expectCommand(matcher, 'c', 'post', 'reply');
+    expectCommand(matcher, 'Escape', 'post', 'deselect');
+    expectCommand(matcher, 'G', 'post', 'last');
+    expect(matcher.match('Enter', 'post')).toEqual({ type: 'none' });
   });
 
   it('makes Backspace global only on supported Reddit pages', () => {
-    expect(commandForKey('Backspace', 'feed')).toBe('back');
-    expect(commandForKey('Backspace', 'post')).toBe('back');
-    expect(commandForKey('Backspace', 'unsupported')).toBeNull();
+    const matcher = new KeyboardShortcutMatcher();
+    expectCommand(matcher, 'Backspace', 'feed', 'back');
+    expectCommand(matcher, 'Backspace', 'post', 'back');
+    expect(matcher.match('Backspace', 'unsupported')).toEqual({ type: 'none' });
   });
 
-  it('allows key repeat only for motion commands', () => {
+  it('matches chords, retries a failed chord as a single key, and expires stale prefixes', () => {
+    const matcher = new KeyboardShortcutMatcher(1_000);
+
+    expect(matcher.match('g', 'feed', { now: 0 })).toEqual({ type: 'pending' });
+    expect(matcher.match('g', 'feed', { now: 500 })).toEqual({
+      type: 'command',
+      command: 'first',
+    });
+
+    expect(matcher.match('g', 'feed', { now: 1_000 })).toEqual({ type: 'pending' });
+    expect(matcher.match('j', 'feed', { now: 1_200 })).toEqual({
+      type: 'command',
+      command: 'next',
+    });
+
+    expect(matcher.match('g', 'feed', { now: 2_000 })).toEqual({ type: 'pending' });
+    expect(matcher.match('g', 'feed', { now: 3_001 })).toEqual({ type: 'pending' });
+    expect(matcher.match('g', 'feed', { now: 3_500 })).toEqual({
+      type: 'command',
+      command: 'first',
+    });
+  });
+
+  it('does not let key repeat complete a chord and clears prefixes between pages', () => {
+    const matcher = new KeyboardShortcutMatcher();
+
+    expect(matcher.match('g', 'feed', { now: 0 })).toEqual({ type: 'pending' });
+    expect(matcher.match('g', 'feed', { now: 100, repeat: true })).toEqual({
+      type: 'pending',
+    });
+    expect(matcher.match('g', 'feed', { now: 200 })).toEqual({
+      type: 'command',
+      command: 'first',
+    });
+
+    expect(matcher.match('g', 'feed')).toEqual({ type: 'pending' });
+    expect(matcher.match('g', 'post')).toEqual({ type: 'pending' });
+  });
+
+  it('allows key repeat only for relative motion commands', () => {
     expect(isAllowedRepeat('next')).toBe(true);
     expect(isAllowedRepeat('previous')).toBe(true);
     for (const command of [
+      'first',
+      'last',
       'upvote',
       'downvote',
       'open',

@@ -141,6 +141,38 @@ describe('RedditController feed behavior', () => {
     expect(otherNext).not.toHaveBeenCalled();
     controller.stop();
   });
+
+  it('selects the first and last feed posts with gg and G', () => {
+    setDocument(`
+      <main>
+        <shreddit-post post-id="t3_one" id="post-one"></shreddit-post>
+        <shreddit-post post-id="t3_two" id="post-two"></shreddit-post>
+        <shreddit-post post-id="t3_three" id="post-three"></shreddit-post>
+      </main>
+    `);
+    for (const post of document.querySelectorAll<HTMLElement>('shreddit-post')) {
+      post.scrollIntoView = vi.fn();
+    }
+    const controller = new RedditController(
+      document,
+      makeControllerWindow('https://www.reddit.com/r/svelte/'),
+    );
+    controller.start();
+    controller.setEnabled(true);
+    const competingListener = vi.fn();
+    document.addEventListener('keydown', competingListener, true);
+
+    expect(dispatchKey('G', { shiftKey: true }).defaultPrevented).toBe(true);
+    expect(competingListener).not.toHaveBeenCalled();
+    expect(controller.feedSelection.current?.id).toBe('post-three');
+    expect(dispatchKey('g').defaultPrevented).toBe(true);
+    expect(controller.feedSelection.current?.id).toBe('post-three');
+    expect(dispatchKey('g').defaultPrevented).toBe(true);
+    expect(controller.feedSelection.current?.id).toBe('post-one');
+    expect(competingListener).not.toHaveBeenCalled();
+    document.removeEventListener('keydown', competingListener, true);
+    controller.stop();
+  });
 });
 
 describe('RedditController post behavior', () => {
@@ -281,6 +313,41 @@ describe('RedditController post behavior', () => {
     expect(element('shreddit-post').classList.contains(SELECTED_CLASS)).toBe(true);
     expect(dispatchKey('c').defaultPrevented).toBe(true);
     expect(postReply).toHaveBeenCalledTimes(3);
+    controller.stop();
+  });
+
+  it('selects the post with gg and the bottom-most top-level comment with G', () => {
+    setDocument(`
+      <main>
+        <shreddit-post post-id="t3_post" id="post"></shreddit-post>
+        <shreddit-comment comment-id="t1_first" id="first">
+          <shreddit-comment comment-id="t1_nested" id="nested"></shreddit-comment>
+        </shreddit-comment>
+        <shreddit-comment comment-id="t1_last" id="last"></shreddit-comment>
+      </main>
+    `);
+    for (const item of document.querySelectorAll<HTMLElement>('shreddit-post, shreddit-comment')) {
+      item.scrollIntoView = vi.fn();
+    }
+    const controller = new RedditController(
+      document,
+      makeControllerWindow('https://www.reddit.com/r/svelte/comments/abc/title/'),
+    );
+    controller.start();
+    controller.setEnabled(true);
+
+    expect(dispatchKey('j').defaultPrevented).toBe(true);
+    expect(dispatchKey('j').defaultPrevented).toBe(true);
+    expect(controller.commentSelection.current?.id).toBe('first');
+    expect(dispatchKey('j').defaultPrevented).toBe(true);
+    expect(controller.commentSelection.current?.id).toBe('nested');
+
+    expect(dispatchKey('g').defaultPrevented).toBe(true);
+    expect(dispatchKey('g').defaultPrevented).toBe(true);
+    expect(controller.commentSelection.current?.id).toBe('post');
+
+    expect(dispatchKey('G', { shiftKey: true }).defaultPrevented).toBe(true);
+    expect(controller.commentSelection.current?.id).toBe('last');
     controller.stop();
   });
 

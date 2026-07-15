@@ -21,19 +21,20 @@ export function isEditableElement(value: EventTarget | Element | null): boolean 
 
 type KeyboardEventIgnoreOptions = {
   respectDefaultPrevented?: boolean;
+  allowShift?: boolean;
 };
 
 export function shouldIgnoreKeyboardEvent(
   event: KeyboardEvent,
   document: Document,
-  { respectDefaultPrevented = true }: KeyboardEventIgnoreOptions = {},
+  { respectDefaultPrevented = true, allowShift = false }: KeyboardEventIgnoreOptions = {},
 ): boolean {
   return (
     (respectDefaultPrevented && event.defaultPrevented) ||
     event.metaKey ||
     event.ctrlKey ||
     event.altKey ||
-    event.shiftKey ||
+    (event.shiftKey && !allowShift) ||
     isEditableElement(event.target) ||
     isEditableElement(document.activeElement)
   );
