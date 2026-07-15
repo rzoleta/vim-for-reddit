@@ -1,12 +1,14 @@
 import { shouldIgnoreKeyboardEvent } from './editable';
 import { commandForKey, isAllowedRepeat, type KeyboardCommand } from './keyboard';
 import {
+  activatePostReplyControl,
   clickNativeControl,
   findActionControl,
   findPostLink,
-  findPostReplyControl,
   getFeedPosts,
+  getPostPagePost,
   getVisibleComments,
+  POST_SELECTOR,
   setCommentExpanded,
 } from './reddit-dom';
 import { FeedRestorationStore } from './restoration';
@@ -34,7 +36,11 @@ export class RedditController {
       () => getFeedPosts(this.document),
       (post) => this.#restoration.save(new URL(this.window.location.href), post),
     );
-    this.commentSelection = new SelectionManager(() => getVisibleComments(this.document));
+    this.commentSelection = new SelectionManager(() => {
+      const post = getPostPagePost(this.document);
+      const comments = getVisibleComments(this.document);
+      return post ? [post, ...comments] : comments;
+    });
   }
 
   start(): void {
@@ -113,20 +119,21 @@ export class RedditController {
     if (command === 'next') return Boolean(this.commentSelection.move(1));
     if (command === 'previous') return Boolean(this.commentSelection.move(-1));
     if (command === 'deselect') {
-      this.commentSelection.clear();
-      return true;
+      const post = getPostPagePost(this.document);
+      return post ? Boolean(this.commentSelection.select(post)) : false;
     }
     if (command === 'reply') {
       const current = this.commentSelection.current ?? this.commentSelection.reconcile();
-      return clickNativeControl(
-        current ? findActionControl(current, 'reply') : findPostReplyControl(this.document),
-      );
+      return current && !current.matches(POST_SELECTOR)
+        ? clickNativeControl(findActionControl(current, 'reply'))
+        : activatePostReplyControl(this.document);
     }
 
     const current = this.commentSelection.current ?? this.commentSelection.reconcile();
     if (!current) return false;
 
     if (command === 'collapse' || command === 'expand') {
+      if (current.matches(POST_SELECTOR)) return false;
       setCommentExpanded(current, command === 'expand');
       return true;
     }

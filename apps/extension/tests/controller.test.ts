@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RedditController } from '../lib/controller';
+import { installPostComposerBridge } from '../lib/page-bridge';
 import { SELECTED_CLASS } from '../lib/selection';
 import { element, makeControllerWindow, setDocument } from './helpers';
 
@@ -103,7 +104,7 @@ describe('RedditController feed behavior', () => {
 });
 
 describe('RedditController post behavior', () => {
-  it('navigates comments, expands and collapses, and delegates comment actions', () => {
+  it('navigates from the post into comments and delegates actions by selected item', () => {
     setDocument(`
       <main>
         <shreddit-post post-id="t3_post"></shreddit-post>
@@ -124,8 +125,8 @@ describe('RedditController post behavior', () => {
         <shreddit-comment comment-id="t1_second" id="second"></shreddit-comment>
       </main>
     `);
-    for (const comment of document.querySelectorAll<HTMLElement>('shreddit-comment')) {
-      comment.scrollIntoView = vi.fn();
+    for (const item of document.querySelectorAll<HTMLElement>('shreddit-post, shreddit-comment')) {
+      item.scrollIntoView = vi.fn();
     }
     const spies: Record<string, () => void> = {};
     for (const id of ['parent-up', 'parent-down', 'parent-toggle', 'parent-reply', 'post-reply']) {
@@ -139,6 +140,11 @@ describe('RedditController post behavior', () => {
     );
     controller.start();
     controller.setEnabled(true);
+
+    expect(controller.execute('next')).toBe(true);
+    expect(controller.commentSelection.current?.getAttribute('post-id')).toBe('t3_post');
+    expect(controller.execute('reply')).toBe(true);
+    expect(spies['post-reply']).toHaveBeenCalledOnce();
 
     expect(controller.execute('next')).toBe(true);
     expect(controller.commentSelection.current?.id).toBe('parent');
@@ -169,7 +175,7 @@ describe('RedditController post behavior', () => {
     controller.stop();
   });
 
-  it('replies to the post with no selected comment and Esc restores that behavior', () => {
+  it('comments on the selected post and Esc returns selection to the post', () => {
     setDocument(`
       <main>
         <shreddit-post post-id="t3_post"></shreddit-post>
@@ -179,6 +185,7 @@ describe('RedditController post behavior', () => {
         </shreddit-comment>
       </main>
     `);
+    element('shreddit-post').scrollIntoView = vi.fn();
     element('#comment').scrollIntoView = vi.fn();
     const postReply = vi.fn();
     const commentReply = vi.fn();
@@ -195,12 +202,48 @@ describe('RedditController post behavior', () => {
     expect(postReply).toHaveBeenCalledOnce();
     expect(dispatchKey('j').defaultPrevented).toBe(true);
     expect(dispatchKey('c').defaultPrevented).toBe(true);
+    expect(postReply).toHaveBeenCalledTimes(2);
+    expect(commentReply).not.toHaveBeenCalled();
+    expect(dispatchKey('j').defaultPrevented).toBe(true);
+    expect(dispatchKey('c').defaultPrevented).toBe(true);
     expect(commentReply).toHaveBeenCalledOnce();
     expect(dispatchKey('Escape').defaultPrevented).toBe(true);
-    expect(controller.commentSelection.current).toBeNull();
+    expect(controller.commentSelection.current?.getAttribute('post-id')).toBe('t3_post');
+    expect(element('shreddit-post').classList.contains(SELECTED_CLASS)).toBe(true);
     expect(dispatchKey('c').defaultPrevented).toBe(true);
-    expect(postReply).toHaveBeenCalledTimes(2);
+    expect(postReply).toHaveBeenCalledTimes(3);
     controller.stop();
+  });
+
+  it('focuses Reddit\'s current post composer when commenting on the post', () => {
+    setDocument(`
+      <main>
+        <shreddit-post post-id="t3_post"></shreddit-post>
+        <comment-composer-host id="post-composer-host">
+          <shreddit-composer placeholder="Join the conversation">
+            <div
+              slot="rte"
+              contenteditable="true"
+              aria-placeholder="Join the conversation"
+            ></div>
+          </shreddit-composer>
+        </comment-composer-host>
+      </main>
+    `);
+    element('shreddit-post').scrollIntoView = vi.fn();
+    const composerFocus = vi.fn();
+    element('#post-composer-host').focus = composerFocus;
+    const removeBridge = installPostComposerBridge(document);
+    const controller = new RedditController(
+      document,
+      makeControllerWindow('https://www.reddit.com/r/svelte/comments/abc/title/'),
+    );
+    controller.setEnabled(true);
+
+    expect(controller.execute('next')).toBe(true);
+    expect(controller.execute('reply')).toBe(true);
+    expect(composerFocus).toHaveBeenCalledOnce();
+    removeBridge();
   });
 
   it('returns false for item actions when no current item or native control exists', () => {

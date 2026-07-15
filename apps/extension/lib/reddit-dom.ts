@@ -1,3 +1,8 @@
+import {
+  ACTIVATE_POST_COMPOSER_EVENT,
+  COMMENT_COMPOSER_HOST_SELECTOR,
+} from './page-bridge';
+
 export const POST_SELECTOR = 'shreddit-post';
 export const COMMENT_SELECTOR = 'shreddit-comment';
 
@@ -49,12 +54,16 @@ const ACTION_SELECTORS: Record<RedditAction, string[]> = {
   ],
 };
 
+const POST_COMPOSER_SELECTOR = 'shreddit-composer[placeholder*="join the conversation" i]';
+
 const POST_REPLY_SELECTORS = [
+  `${POST_COMPOSER_SELECTOR} [slot="rte"]`,
+  '[contenteditable="true"][aria-placeholder*="join the conversation" i]',
+  'textarea[placeholder*="join the conversation" i]',
   'button[aria-label*="add a comment" i]',
   'button[aria-label*="comment on this post" i]',
   '[data-testid="comment-submission-form"] button',
   'shreddit-composer button',
-  'button[placeholder*="comment" i]',
 ];
 
 const POST_LINK_SELECTORS = [
@@ -187,7 +196,28 @@ export function setCommentExpanded(comment: HTMLElement, expanded: boolean): boo
 
 export function findPostReplyControl(document: Document): HTMLElement | null {
   const root: ParentNode = document.querySelector('main') ?? document;
+  const composer = queryFirstDeep(root, [POST_COMPOSER_SELECTOR]);
+  const composerHost = composer
+    ? getClosestAcrossShadowRoots(composer, COMMENT_COMPOSER_HOST_SELECTOR)
+    : null;
+  if (composerHost) return composerHost;
   return queryFirstDeep(root, POST_REPLY_SELECTORS);
+}
+
+export function activatePostReplyControl(document: Document): boolean {
+  const control = findPostReplyControl(document);
+  if (!control || control.matches(':disabled, [aria-disabled="true"]')) return false;
+
+  if (control.matches(COMMENT_COMPOSER_HOST_SELECTOR)) {
+    control.dispatchEvent(
+      new Event(ACTIVATE_POST_COMPOSER_EVENT, { bubbles: true, composed: true }),
+    );
+    return true;
+  }
+
+  control.focus();
+  control.click();
+  return true;
 }
 
 export function findPostLink(post: HTMLElement): HTMLAnchorElement | null {

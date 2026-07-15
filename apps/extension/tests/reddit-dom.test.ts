@@ -178,6 +178,24 @@ describe('native Reddit controls', () => {
     expect(findPostLink(element('#post'))?.pathname).toBe('/r/svelte/comments/abc/title/');
   });
 
+  it('finds Reddit\'s current contenteditable post composer', () => {
+    setDocument(`
+      <main>
+        <comment-composer-host id="post-composer-host">
+          <shreddit-composer placeholder="Join the conversation">
+            <div
+              slot="rte"
+              contenteditable="true"
+              aria-placeholder="Join the conversation"
+            ></div>
+          </shreddit-composer>
+        </comment-composer-host>
+      </main>
+    `);
+
+    expect(findPostReplyControl(document)?.id).toBe('post-composer-host');
+  });
+
   it('does not click missing or disabled native controls', () => {
     setDocument('<button id="disabled" disabled></button><button id="aria" aria-disabled="true"></button>');
     expect(clickNativeControl(null)).toBe(false);

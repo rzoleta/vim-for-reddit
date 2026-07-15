@@ -26,14 +26,14 @@
     {
       title: 'In a post',
       shortcuts: [
-        { key: 'j', action: 'Select next comment' },
-        { key: 'k', action: 'Select previous comment' },
+        { key: 'j', action: 'Select the post, then the next comment' },
+        { key: 'k', action: 'Select the previous comment or post' },
         { key: 'h', action: 'Collapse current comment' },
         { key: 'l', action: 'Expand current comment' },
-        { key: 'u', action: 'Upvote current comment' },
-        { key: 'd', action: 'Downvote current comment' },
-        { key: 'c', action: 'Reply to current comment, or post if none selected' },
-        { key: 'Esc', action: 'Deselect the comment' },
+        { key: 'u', action: 'Upvote the selected post or comment' },
+        { key: 'd', action: 'Downvote the selected post or comment' },
+        { key: 'c', action: 'Comment on the selected post, or reply to a comment' },
+        { key: 'Esc', action: 'Return selection to the post' },
       ],
     },
     {
