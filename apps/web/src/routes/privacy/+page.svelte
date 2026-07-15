@@ -1,10 +1,17 @@
 <script lang="ts">
   import LegalPage from '$lib/LegalPage.svelte';
+
+  const title = 'Privacy policy — Vim for Reddit';
+  const description = 'Read the Vim for Reddit privacy policy and learn how the browser extension handles your data.';
 </script>
 
 <svelte:head>
-  <title>Privacy — Vim for Reddit</title>
-  <meta name="description" content="The Vim for Reddit privacy policy, in plain language." />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
 </svelte:head>
 
 <LegalPage

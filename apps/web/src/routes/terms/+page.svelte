@@ -1,10 +1,17 @@
 <script lang="ts">
   import LegalPage from '$lib/LegalPage.svelte';
+
+  const title = 'Terms of use — Vim for Reddit';
+  const description = 'Read the terms of use for the Vim for Reddit browser extension.';
 </script>
 
 <svelte:head>
-  <title>Terms of use — Vim for Reddit</title>
-  <meta name="description" content="The Vim for Reddit terms of use, in plain language." />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
 </svelte:head>
 
 <LegalPage

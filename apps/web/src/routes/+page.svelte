@@ -3,6 +3,7 @@
   import demoUrl from '$lib/assets/demo.mp4';
   import firefoxIconUrl from '$lib/assets/firefox.svg';
   import Footer from '$lib/Footer.svelte';
+  import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_URL } from '$lib/seo';
   import Wordmark from '$lib/Wordmark.svelte';
 
   const shortcuts = [
@@ -18,14 +19,43 @@
     { key: 'Enter', action: 'open' },
     { key: 'Backspace', action: 'back' },
   ];
+
+  const title = 'Vim for Reddit — Vim keybindings for browsing Reddit';
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    '@id': `${SITE_URL}/#software`,
+    name: SITE_NAME,
+    url: SITE_URL,
+    description: DEFAULT_DESCRIPTION,
+    applicationCategory: 'BrowserApplication',
+    operatingSystem: 'Chrome, Firefox',
+    isAccessibleForFree: true,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    featureList: [
+      'Vim keyboard navigation for Reddit posts and comments',
+      'Keyboard shortcuts for voting, replying, opening, and collapsing content',
+      'Support for Chrome and Firefox',
+    ],
+  };
 </script>
 
 <svelte:head>
-  <title>Vim for Reddit — Browse Reddit from the keyboard</title>
-  <meta property="og:title" content="Vim for Reddit" />
-  <meta property="og:description" content="Use vim motions when browsing reddit." />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary" />
+  <title>{title}</title>
+  <meta name="description" content={DEFAULT_DESCRIPTION} />
+  <meta
+    name="keywords"
+    content="Vim for Reddit, Reddit keyboard shortcuts, Reddit Vim keybindings, keyboard navigation, Chrome extension, Firefox add-on"
+  />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={DEFAULT_DESCRIPTION} />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={DEFAULT_DESCRIPTION} />
+  {@html `<script type="application/ld+json">${JSON.stringify(structuredData).replaceAll('<', '\\u003c')}<\/script>`}
 </svelte:head>
 
 <main class="relative flex min-h-[calc(100dvh-73px)] flex-col overflow-hidden">
