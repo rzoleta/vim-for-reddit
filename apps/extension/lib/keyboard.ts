@@ -3,6 +3,8 @@ import type { RedditPageKind } from './route';
 export type KeyboardCommand =
   | 'next'
   | 'previous'
+  | 'previous-image'
+  | 'next-image'
   | 'upvote'
   | 'downvote'
   | 'open'
@@ -23,6 +25,10 @@ export function commandForKey(key: string, pageKind: RedditPageKind): KeyboardCo
         return 'next';
       case 'k':
         return 'previous';
+      case 'h':
+        return 'previous-image';
+      case 'l':
+        return 'next-image';
       case 'u':
         return 'upvote';
       case 'd':
@@ -41,9 +47,9 @@ export function commandForKey(key: string, pageKind: RedditPageKind): KeyboardCo
       case 'k':
         return 'previous';
       case 'h':
-        return 'collapse';
+        return 'previous-image';
       case 'l':
-        return 'expand';
+        return 'next-image';
       case 'u':
         return 'upvote';
       case 'd':

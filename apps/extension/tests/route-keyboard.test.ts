@@ -37,15 +37,16 @@ describe('keyboard command mapping', () => {
     expect(commandForKey('u', 'feed')).toBe('upvote');
     expect(commandForKey('d', 'feed')).toBe('downvote');
     expect(commandForKey('Enter', 'feed')).toBe('open');
-    expect(commandForKey('h', 'feed')).toBeNull();
+    expect(commandForKey('h', 'feed')).toBe('previous-image');
+    expect(commandForKey('l', 'feed')).toBe('next-image');
     expect(commandForKey('c', 'feed')).toBeNull();
   });
 
   it('maps every post shortcut and no feed-only open shortcut', () => {
     expect(commandForKey('j', 'post')).toBe('next');
     expect(commandForKey('k', 'post')).toBe('previous');
-    expect(commandForKey('h', 'post')).toBe('collapse');
-    expect(commandForKey('l', 'post')).toBe('expand');
+    expect(commandForKey('h', 'post')).toBe('previous-image');
+    expect(commandForKey('l', 'post')).toBe('next-image');
     expect(commandForKey('u', 'post')).toBe('upvote');
     expect(commandForKey('d', 'post')).toBe('downvote');
     expect(commandForKey('c', 'post')).toBe('reply');
@@ -66,6 +67,8 @@ describe('keyboard command mapping', () => {
       'upvote',
       'downvote',
       'open',
+      'previous-image',
+      'next-image',
       'collapse',
       'expand',
       'reply',

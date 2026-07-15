@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clickNativeControl,
   findActionControl,
+  findGalleryControl,
   findPostLink,
   findPostReplyControl,
   getFeedPosts,
@@ -9,6 +10,7 @@ import {
   getStableElementKey,
   getVisibleComments,
   isVisibleComment,
+  navigateGallery,
   setCommentExpanded,
 } from '../lib/reddit-dom';
 import { element, setDocument } from './helpers';
@@ -112,6 +114,38 @@ describe('native Reddit controls', () => {
     button.setAttribute('aria-label', 'Upvote comment');
     shadow.append(button);
     expect(findActionControl(element('#comment'), 'upvote')).toBe(button);
+  });
+
+  it('finds and navigates gallery controls inside the carousel shadow root', () => {
+    setDocument('<shreddit-post id="post"><gallery-carousel id="gallery"></gallery-carousel></shreddit-post>');
+    const shadow = element('#gallery').attachShadow({ mode: 'open' });
+    const previous = document.createElement('button');
+    previous.setAttribute('aria-label', 'Previous page');
+    const next = document.createElement('button');
+    next.setAttribute('aria-label', 'Next page');
+    shadow.append(previous, next);
+    const previousClick = vi.fn();
+    const nextClick = vi.fn();
+    previous.addEventListener('click', previousClick);
+    next.addEventListener('click', nextClick);
+
+    expect(findGalleryControl(element('#post'), 'previous')).toBe(previous);
+    expect(findGalleryControl(element('#post'), 'next')).toBe(next);
+    expect(navigateGallery(element('#post'), 'previous')).toBe(true);
+    expect(navigateGallery(element('#post'), 'next')).toBe(true);
+    expect(previousClick).toHaveBeenCalledOnce();
+    expect(nextClick).toHaveBeenCalledOnce();
+  });
+
+  it('prefers a visible media lightbox gallery over the inline post gallery', () => {
+    setDocument(`
+      <shreddit-post id="post"><gallery-carousel><button aria-label="Next page" id="inline"></button></gallery-carousel></shreddit-post>
+      <div id="shreddit-media-lightbox"><gallery-carousel><button aria-label="Next page" id="lightbox"></button></gallery-carousel></div>
+    `);
+
+    expect(findGalleryControl(element('#post'), 'next')?.id).toBe('lightbox');
+    element('#shreddit-media-lightbox').hidden = true;
+    expect(findGalleryControl(element('#post'), 'next')?.id).toBe('inline');
   });
 
   it('supports the current Shreddit post and comment action contracts', () => {

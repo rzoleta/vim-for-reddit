@@ -7,6 +7,20 @@ export const POST_SELECTOR = 'shreddit-post';
 export const COMMENT_SELECTOR = 'shreddit-comment';
 
 export type RedditAction = 'upvote' | 'downvote' | 'collapse' | 'expand' | 'reply';
+export type GalleryDirection = 'previous' | 'next';
+
+const GALLERY_CAROUSEL_SELECTORS = ['gallery-carousel'];
+
+const GALLERY_CONTROL_SELECTORS: Record<GalleryDirection, string[]> = {
+  previous: [
+    'button[aria-label="Previous page" i]',
+    'button[aria-label^="Previous" i]',
+  ],
+  next: [
+    'button[aria-label="Next page" i]',
+    'button[aria-label^="Next" i]',
+  ],
+};
 
 const ACTION_SELECTORS: Record<RedditAction, string[]> = {
   upvote: [
@@ -180,6 +194,28 @@ export function findActionControl(scope: HTMLElement, action: RedditAction): HTM
     (candidate) =>
       boundarySelector === null || getClosestAcrossShadowRoots(candidate, boundarySelector) === scope,
   );
+}
+
+export function findGalleryControl(
+  post: HTMLElement,
+  direction: GalleryDirection,
+): HTMLElement | null {
+  const lightbox = post.ownerDocument.querySelector<HTMLElement>('#shreddit-media-lightbox');
+  const roots = lightbox && !isHiddenByAttributes(lightbox) ? [lightbox, post] : [post];
+
+  for (const root of roots) {
+    const carousel = queryFirstDeep(root, GALLERY_CAROUSEL_SELECTORS);
+    if (!carousel) continue;
+
+    const control = queryFirstDeep(carousel, GALLERY_CONTROL_SELECTORS[direction]);
+    if (control) return control;
+  }
+
+  return null;
+}
+
+export function navigateGallery(post: HTMLElement, direction: GalleryDirection): boolean {
+  return clickNativeControl(findGalleryControl(post, direction));
 }
 
 export function setCommentExpanded(comment: HTMLElement, expanded: boolean): boolean {

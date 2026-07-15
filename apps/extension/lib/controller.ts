@@ -8,6 +8,7 @@ import {
   getFeedPosts,
   getPostPagePost,
   getVisibleComments,
+  navigateGallery,
   POST_SELECTOR,
   setCommentExpanded,
 } from './reddit-dom';
@@ -112,6 +113,9 @@ export class RedditController {
       link.click();
       return true;
     }
+    if (command === 'previous-image' || command === 'next-image') {
+      return navigateGallery(current, command === 'previous-image' ? 'previous' : 'next');
+    }
     return false;
   }
 
@@ -127,6 +131,20 @@ export class RedditController {
       return current && !current.matches(POST_SELECTOR)
         ? clickNativeControl(findActionControl(current, 'reply'))
         : activatePostReplyControl(this.document);
+    }
+
+    if (command === 'previous-image' || command === 'next-image') {
+      const current = this.commentSelection.current ?? this.commentSelection.reconcile();
+      if (!current) {
+        const post = getPostPagePost(this.document);
+        return post
+          ? navigateGallery(post, command === 'previous-image' ? 'previous' : 'next')
+          : false;
+      }
+      if (current.matches(POST_SELECTOR)) {
+        return navigateGallery(current, command === 'previous-image' ? 'previous' : 'next');
+      }
+      return setCommentExpanded(current, command === 'next-image');
     }
 
     const current = this.commentSelection.current ?? this.commentSelection.reconcile();

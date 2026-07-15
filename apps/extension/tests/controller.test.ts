@@ -101,9 +101,78 @@ describe('RedditController feed behavior', () => {
     expect(controller.feedSelection.current).toBeNull();
     controller.stop();
   });
+
+  it('navigates the selected feed post gallery with h and l', () => {
+    setDocument(`
+      <main>
+        <shreddit-post post-id="t3_one" id="post-one">
+          <gallery-carousel>
+            <button aria-label="Previous page" id="previous-image"></button>
+            <button aria-label="Next page" id="next-image"></button>
+          </gallery-carousel>
+        </shreddit-post>
+        <shreddit-post post-id="t3_two" id="post-two">
+          <gallery-carousel><button aria-label="Next page" id="other-next"></button></gallery-carousel>
+        </shreddit-post>
+      </main>
+    `);
+    for (const post of document.querySelectorAll<HTMLElement>('shreddit-post')) {
+      post.scrollIntoView = vi.fn();
+    }
+    const previous = vi.fn();
+    const next = vi.fn();
+    const otherNext = vi.fn();
+    element('#previous-image').addEventListener('click', previous);
+    element('#next-image').addEventListener('click', next);
+    element('#other-next').addEventListener('click', otherNext);
+    const controller = new RedditController(
+      document,
+      makeControllerWindow('https://www.reddit.com/r/svelte/'),
+    );
+    controller.start();
+    controller.setEnabled(true);
+
+    expect(dispatchKey('h').defaultPrevented).toBe(false);
+    expect(dispatchKey('j').defaultPrevented).toBe(true);
+    expect(dispatchKey('h').defaultPrevented).toBe(true);
+    expect(dispatchKey('l').defaultPrevented).toBe(true);
+    expect(previous).toHaveBeenCalledOnce();
+    expect(next).toHaveBeenCalledOnce();
+    expect(otherNext).not.toHaveBeenCalled();
+    controller.stop();
+  });
 });
 
 describe('RedditController post behavior', () => {
+  it('navigates the post gallery with h and l before anything is selected', () => {
+    setDocument(`
+      <main>
+        <shreddit-post post-id="t3_post">
+          <gallery-carousel>
+            <button aria-label="Previous page" id="previous-image"></button>
+            <button aria-label="Next page" id="next-image"></button>
+          </gallery-carousel>
+        </shreddit-post>
+      </main>
+    `);
+    const previous = vi.fn();
+    const next = vi.fn();
+    element('#previous-image').addEventListener('click', previous);
+    element('#next-image').addEventListener('click', next);
+    const controller = new RedditController(
+      document,
+      makeControllerWindow('https://www.reddit.com/r/svelte/comments/abc/title/'),
+    );
+    controller.start();
+    controller.setEnabled(true);
+
+    expect(dispatchKey('h').defaultPrevented).toBe(true);
+    expect(dispatchKey('l').defaultPrevented).toBe(true);
+    expect(previous).toHaveBeenCalledOnce();
+    expect(next).toHaveBeenCalledOnce();
+    controller.stop();
+  });
+
   it('navigates from the post into comments and delegates actions by selected item', () => {
     setDocument(`
       <main>

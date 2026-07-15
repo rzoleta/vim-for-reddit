@@ -18,6 +18,8 @@
       shortcuts: [
         { key: 'j', action: 'Select next post' },
         { key: 'k', action: 'Select previous post' },
+        { key: 'h', action: 'Show previous gallery image' },
+        { key: 'l', action: 'Show next gallery image' },
         { key: 'u', action: 'Upvote current post' },
         { key: 'd', action: 'Downvote current post' },
         { key: 'Enter', action: 'Open the current post' },
@@ -28,8 +30,8 @@
       shortcuts: [
         { key: 'j', action: 'Select the post, then the next comment' },
         { key: 'k', action: 'Select the previous comment or post' },
-        { key: 'h', action: 'Collapse current comment' },
-        { key: 'l', action: 'Expand current comment' },
+        { key: 'h', action: 'Previous gallery image, or collapse comment' },
+        { key: 'l', action: 'Next gallery image, or expand comment' },
         { key: 'u', action: 'Upvote the selected post or comment' },
         { key: 'd', action: 'Downvote the selected post or comment' },
         { key: 'c', action: 'Comment on the selected post, or reply to a comment' },
