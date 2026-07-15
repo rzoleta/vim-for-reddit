@@ -45,7 +45,7 @@ describe('keyboard command mapping', () => {
     expect(commandForKey('j', 'post')).toBe('next');
     expect(commandForKey('k', 'post')).toBe('previous');
     expect(commandForKey('h', 'post')).toBe('collapse');
-    expect(commandForKey('l', 'post')).toBe('first-reply');
+    expect(commandForKey('l', 'post')).toBe('expand');
     expect(commandForKey('u', 'post')).toBe('upvote');
     expect(commandForKey('d', 'post')).toBe('downvote');
     expect(commandForKey('c', 'post')).toBe('reply');
@@ -67,7 +67,7 @@ describe('keyboard command mapping', () => {
       'downvote',
       'open',
       'collapse',
-      'first-reply',
+      'expand',
       'reply',
       'deselect',
       'back',
@@ -76,4 +76,3 @@ describe('keyboard command mapping', () => {
     }
   });
 });
-

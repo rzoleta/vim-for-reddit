@@ -103,21 +103,23 @@ describe('RedditController feed behavior', () => {
 });
 
 describe('RedditController post behavior', () => {
-  it('navigates comments, selects a direct reply, and delegates comment actions', () => {
+  it('navigates comments, expands and collapses, and delegates comment actions', () => {
     setDocument(`
       <main>
         <shreddit-post post-id="t3_post"></shreddit-post>
         <button aria-label="Add a comment" id="post-reply"></button>
         <shreddit-comment comment-id="t1_parent" id="parent">
-          <button aria-label="Upvote comment" id="parent-up"></button>
-          <button aria-label="Downvote comment" id="parent-down"></button>
-          <button aria-label="Collapse comment" id="parent-collapse"></button>
-          <button aria-label="Reply" id="parent-reply"></button>
-          <div>
-            <shreddit-comment comment-id="t1_child" id="child">
-              <button aria-label="Reply" id="child-reply"></button>
-            </shreddit-comment>
-          </div>
+          <details open>
+            <summary id="parent-toggle">Parent comment</summary>
+            <button aria-label="Upvote comment" id="parent-up"></button>
+            <button aria-label="Downvote comment" id="parent-down"></button>
+            <button aria-label="Reply" id="parent-reply"></button>
+            <div>
+              <shreddit-comment comment-id="t1_child" id="child">
+                <button aria-label="Reply" id="child-reply"></button>
+              </shreddit-comment>
+            </div>
+          </details>
         </shreddit-comment>
         <shreddit-comment comment-id="t1_second" id="second"></shreddit-comment>
       </main>
@@ -126,7 +128,7 @@ describe('RedditController post behavior', () => {
       comment.scrollIntoView = vi.fn();
     }
     const spies: Record<string, () => void> = {};
-    for (const id of ['parent-up', 'parent-down', 'parent-collapse', 'parent-reply', 'post-reply']) {
+    for (const id of ['parent-up', 'parent-down', 'parent-toggle', 'parent-reply', 'post-reply']) {
       const spy = vi.fn();
       spies[id] = spy;
       element(`#${id}`).addEventListener('click', spy);
@@ -135,6 +137,7 @@ describe('RedditController post behavior', () => {
       document,
       makeControllerWindow('https://www.reddit.com/r/svelte/comments/abc/title/'),
     );
+    controller.start();
     controller.setEnabled(true);
 
     expect(controller.execute('next')).toBe(true);
@@ -142,15 +145,21 @@ describe('RedditController post behavior', () => {
     expect(controller.execute('upvote')).toBe(true);
     expect(controller.execute('downvote')).toBe(true);
     expect(controller.execute('collapse')).toBe(true);
+    expect(element<HTMLDetailsElement>('#parent > details').open).toBe(false);
+    expect(controller.execute('collapse')).toBe(true);
+    expect(element<HTMLDetailsElement>('#parent > details').open).toBe(false);
+    expect(dispatchKey('l').defaultPrevented).toBe(true);
+    expect(element<HTMLDetailsElement>('#parent > details').open).toBe(true);
+    expect(controller.execute('expand')).toBe(true);
     expect(controller.execute('reply')).toBe(true);
     expect(spies['parent-up']).toHaveBeenCalledOnce();
     expect(spies['parent-down']).toHaveBeenCalledOnce();
-    expect(spies['parent-collapse']).toHaveBeenCalledOnce();
+    expect(spies['parent-toggle']).toHaveBeenCalledTimes(2);
     expect(spies['parent-reply']).toHaveBeenCalledOnce();
 
-    expect(controller.execute('first-reply')).toBe(true);
+    expect(controller.execute('next')).toBe(true);
     expect(controller.commentSelection.current?.id).toBe('child');
-    expect(controller.execute('first-reply')).toBe(false);
+    controller.stop();
   });
 
   it('replies to the post with no selected comment and Esc restores that behavior', () => {

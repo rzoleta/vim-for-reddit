@@ -29,7 +29,7 @@
         { key: 'j', action: 'Select next comment' },
         { key: 'k', action: 'Select previous comment' },
         { key: 'h', action: 'Collapse current comment' },
-        { key: 'l', action: 'Select first reply to current comment' },
+        { key: 'l', action: 'Expand current comment' },
         { key: 'u', action: 'Upvote current comment' },
         { key: 'd', action: 'Downvote current comment' },
         { key: 'c', action: 'Reply to current comment, or post if none selected' },

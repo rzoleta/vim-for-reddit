@@ -7,7 +7,7 @@ export type KeyboardCommand =
   | 'downvote'
   | 'open'
   | 'collapse'
-  | 'first-reply'
+  | 'expand'
   | 'reply'
   | 'deselect'
   | 'back';
@@ -43,7 +43,7 @@ export function commandForKey(key: string, pageKind: RedditPageKind): KeyboardCo
       case 'h':
         return 'collapse';
       case 'l':
-        return 'first-reply';
+        return 'expand';
       case 'u':
         return 'upvote';
       case 'd':

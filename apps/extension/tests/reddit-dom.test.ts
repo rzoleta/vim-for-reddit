@@ -5,11 +5,11 @@ import {
   findPostLink,
   findPostReplyControl,
   getFeedPosts,
-  getFirstDirectReply,
   getPostPagePost,
   getStableElementKey,
   getVisibleComments,
   isVisibleComment,
+  setCommentExpanded,
 } from '../lib/reddit-dom';
 import { element, setDocument } from './helpers';
 
@@ -77,22 +77,6 @@ describe('new Reddit DOM discovery', () => {
     expect(isVisibleComment(element('#child'))).toBe(true);
   });
 
-  it('finds only the first direct visible reply, not a deeper descendant or sibling', () => {
-    setDocument(`
-      <shreddit-comment id="parent">
-        <div class="replies">
-          <shreddit-comment id="child-hidden" hidden></shreddit-comment>
-          <shreddit-comment id="child-one">
-            <div><shreddit-comment id="grandchild"></shreddit-comment></div>
-          </shreddit-comment>
-          <shreddit-comment id="child-two"></shreddit-comment>
-        </div>
-      </shreddit-comment>
-      <shreddit-comment id="sibling"></shreddit-comment>
-    `);
-    expect(getFirstDirectReply(element('#parent'))?.id).toBe('child-one');
-    expect(getFirstDirectReply(element('#child-two'))).toBeNull();
-  });
 });
 
 describe('native Reddit controls', () => {
@@ -160,9 +144,12 @@ describe('native Reddit controls', () => {
     expect(findActionControl(element('#comment'), 'downvote')?.id).toBe('comment-down');
     expect(findActionControl(element('#comment'), 'collapse')?.id).toBe('collapse');
     expect(findActionControl(element('#comment'), 'reply')?.id).toBe('reply');
-    expect(element<HTMLDetailsElement>('#comment > details').open).toBe(true);
-    expect(clickNativeControl(findActionControl(element('#comment'), 'collapse'))).toBe(true);
+    expect(setCommentExpanded(element('#comment'), false)).toBe(true);
     expect(element<HTMLDetailsElement>('#comment > details').open).toBe(false);
+    expect(setCommentExpanded(element('#comment'), false)).toBe(true);
+    expect(element<HTMLDetailsElement>('#comment > details').open).toBe(false);
+    expect(setCommentExpanded(element('#comment'), true)).toBe(true);
+    expect(element<HTMLDetailsElement>('#comment > details').open).toBe(true);
   });
 
   it('does not borrow an action control from a nested reply', () => {

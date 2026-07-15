@@ -1,7 +1,7 @@
 export const POST_SELECTOR = 'shreddit-post';
 export const COMMENT_SELECTOR = 'shreddit-comment';
 
-export type RedditAction = 'upvote' | 'downvote' | 'collapse' | 'reply';
+export type RedditAction = 'upvote' | 'downvote' | 'collapse' | 'expand' | 'reply';
 
 const ACTION_SELECTORS: Record<RedditAction, string[]> = {
   upvote: [
@@ -30,6 +30,13 @@ const ACTION_SELECTORS: Record<RedditAction, string[]> = {
     'button[data-testid="comment-collapse"]',
     '[data-click-id="collapse"]',
     'faceplate-tracker[noun="collapse"] button',
+  ],
+  expand: [
+    ':scope > details > summary',
+    'button[aria-label*="expand comment" i]',
+    'button[data-testid="comment-expand"]',
+    '[data-click-id="expand"]',
+    'faceplate-tracker[noun="expand"] button',
   ],
   reply: [
     '[slot="comment-reply"]',
@@ -112,15 +119,6 @@ export function getVisibleComments(document: Document): HTMLElement[] {
   return uniqueElements(document.querySelectorAll<HTMLElement>(COMMENT_SELECTOR)).filter(isVisibleComment);
 }
 
-export function getFirstDirectReply(comment: HTMLElement): HTMLElement | null {
-  const descendants = comment.querySelectorAll<HTMLElement>(COMMENT_SELECTOR);
-  for (const candidate of descendants) {
-    const parentComment = candidate.parentElement?.closest<HTMLElement>(COMMENT_SELECTOR);
-    if (parentComment === comment && isVisibleComment(candidate)) return candidate;
-  }
-  return null;
-}
-
 function collectOpenShadowRoots(root: ParentNode): ShadowRoot[] {
   const roots: ShadowRoot[] = [];
   if (root instanceof Element && root.shadowRoot) {
@@ -173,6 +171,18 @@ export function findActionControl(scope: HTMLElement, action: RedditAction): HTM
     (candidate) =>
       boundarySelector === null || getClosestAcrossShadowRoots(candidate, boundarySelector) === scope,
   );
+}
+
+export function setCommentExpanded(comment: HTMLElement, expanded: boolean): boolean {
+  const details = comment.querySelector<HTMLDetailsElement>(':scope > details');
+  if (details) {
+    if (details.open === expanded) return true;
+    return clickNativeControl(findActionControl(comment, expanded ? 'expand' : 'collapse'));
+  }
+
+  const collapsed = isCollapsed(comment);
+  if (collapsed === !expanded) return true;
+  return clickNativeControl(findActionControl(comment, expanded ? 'expand' : 'collapse'));
 }
 
 export function findPostReplyControl(document: Document): HTMLElement | null {

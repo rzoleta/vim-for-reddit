@@ -6,8 +6,8 @@ import {
   findPostLink,
   findPostReplyControl,
   getFeedPosts,
-  getFirstDirectReply,
   getVisibleComments,
+  setCommentExpanded,
 } from './reddit-dom';
 import { FeedRestorationStore } from './restoration';
 import { getRedditPageKind, type RedditPageKind } from './route';
@@ -126,12 +126,12 @@ export class RedditController {
     const current = this.commentSelection.current ?? this.commentSelection.reconcile();
     if (!current) return false;
 
-    if (command === 'upvote' || command === 'downvote' || command === 'collapse') {
-      return clickNativeControl(findActionControl(current, command));
+    if (command === 'collapse' || command === 'expand') {
+      setCommentExpanded(current, command === 'expand');
+      return true;
     }
-    if (command === 'first-reply') {
-      const reply = getFirstDirectReply(current);
-      return reply ? Boolean(this.commentSelection.select(reply)) : false;
+    if (command === 'upvote' || command === 'downvote') {
+      return clickNativeControl(findActionControl(current, command));
     }
     return false;
   }
