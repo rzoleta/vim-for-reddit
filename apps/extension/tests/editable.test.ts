@@ -57,6 +57,9 @@ describe('editable target detection', () => {
     const prevented = new KeyboardEvent('keydown', { cancelable: true });
     prevented.preventDefault();
     expect(shouldIgnoreKeyboardEvent(prevented, document)).toBe(true);
+    expect(
+      shouldIgnoreKeyboardEvent(prevented, document, { respectDefaultPrevented: false }),
+    ).toBe(false);
 
     input.focus();
     expect(
@@ -75,4 +78,3 @@ describe('editable target detection', () => {
     expect(shouldIgnoreKeyboardEvent(event, document)).toBe(false);
   });
 });
-

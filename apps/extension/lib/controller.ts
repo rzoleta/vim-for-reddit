@@ -159,7 +159,12 @@ export class RedditController {
   }
 
   readonly #onKeydown = (event: KeyboardEvent): void => {
-    if (!this.#enabled || shouldIgnoreKeyboardEvent(event, this.document)) return;
+    if (
+      !this.#enabled ||
+      shouldIgnoreKeyboardEvent(event, this.document, { respectDefaultPrevented: false })
+    ) {
+      return;
+    }
 
     this.#syncPage();
     const command = commandForKey(event.key, this.#pageKind);

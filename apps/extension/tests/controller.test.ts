@@ -148,7 +148,14 @@ describe('RedditController post behavior', () => {
     expect(element<HTMLDetailsElement>('#parent > details').open).toBe(false);
     expect(controller.execute('collapse')).toBe(true);
     expect(element<HTMLDetailsElement>('#parent > details').open).toBe(false);
-    expect(dispatchKey('l').defaultPrevented).toBe(true);
+    const expandEvent = new KeyboardEvent('keydown', {
+      key: 'l',
+      bubbles: true,
+      cancelable: true,
+    });
+    expandEvent.preventDefault();
+    document.body.dispatchEvent(expandEvent);
+    expect(expandEvent.defaultPrevented).toBe(true);
     expect(element<HTMLDetailsElement>('#parent > details').open).toBe(true);
     expect(controller.execute('expand')).toBe(true);
     expect(controller.execute('reply')).toBe(true);

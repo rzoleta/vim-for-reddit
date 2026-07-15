@@ -19,9 +19,17 @@ export function isEditableElement(value: EventTarget | Element | null): boolean 
   return root instanceof ShadowRoot ? isEditableElement(root.host) : false;
 }
 
-export function shouldIgnoreKeyboardEvent(event: KeyboardEvent, document: Document): boolean {
+type KeyboardEventIgnoreOptions = {
+  respectDefaultPrevented?: boolean;
+};
+
+export function shouldIgnoreKeyboardEvent(
+  event: KeyboardEvent,
+  document: Document,
+  { respectDefaultPrevented = true }: KeyboardEventIgnoreOptions = {},
+): boolean {
   return (
-    event.defaultPrevented ||
+    (respectDefaultPrevented && event.defaultPrevented) ||
     event.metaKey ||
     event.ctrlKey ||
     event.altKey ||
