@@ -5,6 +5,11 @@
   @apply scroll-m-20 outline-3 outline-offset-3 outline-orange-500 ring-1 ring-orange-500/30 transition-[outline-color,box-shadow] duration-150;
 }
 
+/* Reddit clips nested comment threads horizontally, including outside outlines. */
+shreddit-comment shreddit-comment.vim-for-reddit-selected {
+  @apply outline-none ring-3 ring-inset ring-orange-500;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vim-for-reddit-selected {
     @apply transition-none;
