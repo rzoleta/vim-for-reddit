@@ -105,10 +105,18 @@ export class RedditController {
   }
 
   #executeFeedCommand(command: KeyboardCommand): boolean {
-    if (command === 'first' || command === 'last') {
-      const posts = getFeedPosts(this.document);
-      const post = command === 'first' ? posts[0] : posts.at(-1);
-      return post ? Boolean(this.feedSelection.select(post)) : false;
+    if (command === 'first') {
+      this.window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      this.#afterNextPaint(() => {
+        if (!this.#enabled || this.#pageKind !== 'feed') return;
+        const firstPost = getFeedPosts(this.document)[0];
+        if (firstPost) this.feedSelection.select(firstPost);
+      });
+      return true;
+    }
+    if (command === 'last') {
+      const lastPost = getFeedPosts(this.document).at(-1);
+      return lastPost ? Boolean(this.feedSelection.select(lastPost)) : false;
     }
     if (command === 'next') return Boolean(this.feedSelection.move(1));
     if (command === 'previous') return Boolean(this.feedSelection.move(-1));
@@ -236,6 +244,14 @@ export class RedditController {
 
   readonly #onLocationChange = (): void => this.#syncPage();
 
+  #afterNextPaint(callback: () => void): void {
+    if (typeof this.window.requestAnimationFrame === 'function') {
+      this.window.requestAnimationFrame(callback);
+    } else {
+      this.window.setTimeout(callback, 0);
+    }
+  }
+
   readonly #scheduleRefresh = (): void => {
     if (this.#refreshScheduled) return;
     this.#refreshScheduled = true;
@@ -243,10 +259,6 @@ export class RedditController {
       this.#refreshScheduled = false;
       this.#syncPage();
     };
-    if (typeof this.window.requestAnimationFrame === 'function') {
-      this.window.requestAnimationFrame(refresh);
-    } else {
-      this.window.setTimeout(refresh, 0);
-    }
+    this.#afterNextPaint(refresh);
   };
 }

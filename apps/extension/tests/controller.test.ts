@@ -145,18 +145,24 @@ describe('RedditController feed behavior', () => {
   it('selects the first and last feed posts with gg and G', () => {
     setDocument(`
       <main>
-        <shreddit-post post-id="t3_one" id="post-one"></shreddit-post>
-        <shreddit-post post-id="t3_two" id="post-two"></shreddit-post>
-        <shreddit-post post-id="t3_three" id="post-three"></shreddit-post>
+        <shreddit-post post-id="t3_nearby" id="post-nearby"></shreddit-post>
+        <shreddit-post post-id="t3_current" id="post-current"></shreddit-post>
       </main>
     `);
     for (const post of document.querySelectorAll<HTMLElement>('shreddit-post')) {
       post.scrollIntoView = vi.fn();
     }
-    const controller = new RedditController(
-      document,
-      makeControllerWindow('https://www.reddit.com/r/svelte/'),
-    );
+    const fakeWindow = makeControllerWindow('https://www.reddit.com/r/svelte/');
+    fakeWindow.scrollTo = vi.fn(() => {
+      element('main').innerHTML = `
+        <shreddit-post post-id="t3_first" id="post-first"></shreddit-post>
+        <shreddit-post post-id="t3_second" id="post-second"></shreddit-post>
+      `;
+      for (const post of document.querySelectorAll<HTMLElement>('shreddit-post')) {
+        post.scrollIntoView = vi.fn();
+      }
+    });
+    const controller = new RedditController(document, fakeWindow);
     controller.start();
     controller.setEnabled(true);
     const competingListener = vi.fn();
@@ -164,11 +170,12 @@ describe('RedditController feed behavior', () => {
 
     expect(dispatchKey('G', { shiftKey: true }).defaultPrevented).toBe(true);
     expect(competingListener).not.toHaveBeenCalled();
-    expect(controller.feedSelection.current?.id).toBe('post-three');
+    expect(controller.feedSelection.current?.id).toBe('post-current');
     expect(dispatchKey('g').defaultPrevented).toBe(true);
-    expect(controller.feedSelection.current?.id).toBe('post-three');
+    expect(controller.feedSelection.current?.id).toBe('post-current');
     expect(dispatchKey('g').defaultPrevented).toBe(true);
-    expect(controller.feedSelection.current?.id).toBe('post-one');
+    expect(fakeWindow.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'instant' });
+    expect(controller.feedSelection.current?.id).toBe('post-first');
     expect(competingListener).not.toHaveBeenCalled();
     document.removeEventListener('keydown', competingListener, true);
     controller.stop();
