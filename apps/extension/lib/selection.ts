@@ -1,7 +1,15 @@
-import { getStableElementKey } from './reddit-dom';
+import { COMMENT_SELECTOR, getStableElementKey } from './reddit-dom';
 
 export const SELECTED_CLASS = 'vim-for-reddit-selected';
 export const SELECTED_ATTRIBUTE = 'data-vim-for-reddit-selected';
+export const SELECTION_OVERLAY_CLASS = 'vim-for-reddit-selection-overlay';
+
+const OVERLAY_POSITION_PROPERTIES = {
+  top: '--vim-for-reddit-selection-top',
+  left: '--vim-for-reddit-selection-left',
+  width: '--vim-for-reddit-selection-width',
+  height: '--vim-for-reddit-selection-height',
+} as const;
 
 type SelectionOptions = {
   scroll?: boolean;
@@ -11,6 +19,9 @@ type SelectionOptions = {
 export class SelectionManager {
   #current: HTMLElement | null = null;
   #currentKey: string | null = null;
+  #overlay: HTMLElement | null = null;
+  #overlayCleanup: (() => void) | null = null;
+  #updateOverlay: (() => void) | null = null;
 
   constructor(
     private readonly getCandidates: () => HTMLElement[],
@@ -26,7 +37,8 @@ export class SelectionManager {
   }
 
   select(element: HTMLElement, options: SelectionOptions = {}): HTMLElement {
-    if (this.#current !== element) this.#removeHighlight();
+    const changed = this.#current !== element;
+    if (changed) this.#removeHighlight();
 
     this.#current = element;
     this.#currentKey = getStableElementKey(element);
@@ -40,6 +52,9 @@ export class SelectionManager {
         inline: 'nearest',
       });
     }
+
+    if (changed) this.#createNestedCommentOverlay(element);
+    else this.#updateOverlay?.();
 
     this.onSelected?.(element);
     return element;
@@ -61,7 +76,10 @@ export class SelectionManager {
   }
 
   reconcile(): HTMLElement | null {
-    if (this.current) return this.#current;
+    if (this.current) {
+      this.#updateOverlay?.();
+      return this.#current;
+    }
     if (!this.#currentKey) return null;
 
     const replacement = this.getCandidates().find(
@@ -79,5 +97,58 @@ export class SelectionManager {
   #removeHighlight(): void {
     this.#current?.classList.remove(SELECTED_CLASS);
     this.#current?.removeAttribute(SELECTED_ATTRIBUTE);
+    this.#removeOverlay();
+  }
+
+  #createNestedCommentOverlay(element: HTMLElement): void {
+    if (
+      !element.matches(COMMENT_SELECTOR) ||
+      !element.parentElement?.closest(COMMENT_SELECTOR)
+    ) {
+      return;
+    }
+
+    const document = element.ownerDocument;
+    const view = document.defaultView;
+    const overlay = document.createElement('div');
+    overlay.className = SELECTION_OVERLAY_CLASS;
+    overlay.setAttribute('aria-hidden', 'true');
+    document.documentElement.append(overlay);
+
+    const update = () => {
+      if (!element.isConnected) {
+        overlay.hidden = true;
+        return;
+      }
+
+      const rect = element.getBoundingClientRect();
+      overlay.hidden = rect.width <= 0 || rect.height <= 0;
+      overlay.style.setProperty(OVERLAY_POSITION_PROPERTIES.top, `${rect.top}px`);
+      overlay.style.setProperty(OVERLAY_POSITION_PROPERTIES.left, `${rect.left}px`);
+      overlay.style.setProperty(OVERLAY_POSITION_PROPERTIES.width, `${rect.width}px`);
+      overlay.style.setProperty(OVERLAY_POSITION_PROPERTIES.height, `${rect.height}px`);
+    };
+
+    view?.addEventListener('scroll', update, true);
+    view?.addEventListener('resize', update);
+    const resizeObserver = view?.ResizeObserver ? new view.ResizeObserver(update) : null;
+    resizeObserver?.observe(element);
+
+    this.#overlay = overlay;
+    this.#updateOverlay = update;
+    this.#overlayCleanup = () => {
+      view?.removeEventListener('scroll', update, true);
+      view?.removeEventListener('resize', update);
+      resizeObserver?.disconnect();
+    };
+    update();
+  }
+
+  #removeOverlay(): void {
+    this.#overlayCleanup?.();
+    this.#overlay?.remove();
+    this.#overlay = null;
+    this.#overlayCleanup = null;
+    this.#updateOverlay = null;
   }
 }

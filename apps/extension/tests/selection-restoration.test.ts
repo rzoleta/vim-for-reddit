@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FeedRestorationStore } from '../lib/restoration';
-import { SELECTED_ATTRIBUTE, SELECTED_CLASS, SelectionManager } from '../lib/selection';
+import {
+  SELECTED_ATTRIBUTE,
+  SELECTED_CLASS,
+  SELECTION_OVERLAY_CLASS,
+  SelectionManager,
+} from '../lib/selection';
 import { createStorage, element, setDocument } from './helpers';
 
 beforeEach(() => {
@@ -11,6 +16,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   document.body.innerHTML = '';
+  document.querySelectorAll(`.${SELECTION_OVERLAY_CLASS}`).forEach((overlay) => overlay.remove());
 });
 
 describe('SelectionManager', () => {
@@ -84,6 +90,48 @@ describe('SelectionManager', () => {
     expect(manager.reconcile()).toBe(replacement);
     expect(replacement.classList.contains(SELECTED_CLASS)).toBe(true);
     expect(replacement.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it('renders nested comment highlights above Reddit and tracks their viewport rectangle', () => {
+    setDocument(`
+      <shreddit-comment id="parent">
+        <shreddit-comment id="reply"></shreddit-comment>
+      </shreddit-comment>
+    `);
+    const reply = element('#reply');
+    reply.scrollIntoView = vi.fn();
+    const rect = vi.spyOn(reply, 'getBoundingClientRect');
+    rect.mockReturnValue({ top: 10, left: 20, width: 300, height: 120 } as DOMRect);
+    const manager = new SelectionManager(() => [reply]);
+
+    manager.select(reply, { scroll: false });
+    const overlay = element(`.${SELECTION_OVERLAY_CLASS}`);
+    expect(overlay.getAttribute('aria-hidden')).toBe('true');
+    expect(overlay.style.getPropertyValue('--vim-for-reddit-selection-top')).toBe('10px');
+    expect(overlay.style.getPropertyValue('--vim-for-reddit-selection-left')).toBe('20px');
+    expect(overlay.style.getPropertyValue('--vim-for-reddit-selection-width')).toBe('300px');
+    expect(overlay.style.getPropertyValue('--vim-for-reddit-selection-height')).toBe('120px');
+
+    rect.mockReturnValue({ top: 40, left: 50, width: 280, height: 160 } as DOMRect);
+    window.dispatchEvent(new Event('scroll'));
+    expect(overlay.style.getPropertyValue('--vim-for-reddit-selection-top')).toBe('40px');
+    expect(overlay.style.getPropertyValue('--vim-for-reddit-selection-left')).toBe('50px');
+    expect(overlay.style.getPropertyValue('--vim-for-reddit-selection-width')).toBe('280px');
+    expect(overlay.style.getPropertyValue('--vim-for-reddit-selection-height')).toBe('160px');
+
+    manager.clear();
+    expect(document.querySelector(`.${SELECTION_OVERLAY_CLASS}`)).toBeNull();
+  });
+
+  it('keeps top-level comments on the standard CSS highlight', () => {
+    setDocument('<shreddit-comment id="comment"></shreddit-comment>');
+    const comment = element('#comment');
+    comment.scrollIntoView = vi.fn();
+    const manager = new SelectionManager(() => [comment]);
+
+    manager.select(comment, { scroll: false });
+    expect(comment.classList.contains(SELECTED_CLASS)).toBe(true);
+    expect(document.querySelector(`.${SELECTION_OVERLAY_CLASS}`)).toBeNull();
   });
 
   it('returns null with no candidates', () => {
