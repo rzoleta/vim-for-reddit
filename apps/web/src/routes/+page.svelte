@@ -77,7 +77,9 @@
 
           <div class="mt-10 flex flex-col gap-3 sm:flex-row">
             <a
-              href="/"
+              href="https://chromewebstore.google.com/detail/vim-for-reddit/hdkbfdfibdlgomneegjbifjcemnjjoko?authuser=0&hl=en"
+              target="_blank"
+              rel="noopener noreferrer"
               class="group inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-[#171716] px-6 py-3.5 font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.14)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff4500]"
             >
               <img class="size-5 shrink-0" src={chromeIconUrl} alt="" aria-hidden="true" />
