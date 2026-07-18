@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { track } from '@vercel/analytics';
+
   import chromeIconUrl from '$lib/assets/chrome.svg';
   import demoUrl from '$lib/assets/demo.mp4';
   import firefoxIconUrl from '$lib/assets/firefox.svg';
@@ -80,6 +82,7 @@
               href="https://chromewebstore.google.com/detail/vim-for-reddit/hdkbfdfibdlgomneegjbifjcemnjjoko?authuser=0&hl=en"
               target="_blank"
               rel="noopener noreferrer"
+              onclick={() => track('chrome_install_click')}
               class="group inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-[#171716] px-6 py-3.5 font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.14)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff4500]"
             >
               <img class="size-5 shrink-0" src={chromeIconUrl} alt="" aria-hidden="true" />
@@ -88,6 +91,7 @@
             </a>
             <a
               href="/"
+              onclick={() => track('firefox_install_click')}
               class="group inline-flex min-h-12 items-center justify-center gap-3 rounded-xl border border-black/15 bg-white/55 px-6 py-3.5 font-semibold text-[#171716] backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-black/30 hover:bg-white/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff4500]"
             >
               <img class="size-5 shrink-0" src={firefoxIconUrl} alt="" aria-hidden="true" />

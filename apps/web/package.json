@@ -20,5 +20,8 @@
     "tailwindcss": "4.3.2",
     "typescript": "6.0.3",
     "vite": "7.3.6"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }
